@@ -2,6 +2,8 @@ from aiogram import types, F
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from loader import bot, dp
 import asyncio
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.context import FSMContext
 
 test_1_questions = [
     {"question": "1-savol: Python qaysi tilda yozilgan?", "options": ["C++", "Java", "C"], "correct_option_id": 0},
@@ -15,67 +17,35 @@ test_2_questions = [
 
 user_results = {}
 
-# Savollarni bir-biridan kutib yuborish
-async def start_test_1(message: types.Message):
-    user_id = message.from_user.id
-    user_results[user_id] = {"correct": 0, "total": len(test_1_questions)}
-
-    for question in test_1_questions:
-        # Har bir savolni yuborish
-        question_message = await bot.send_poll(
-            chat_id=message.chat.id,
-            question=question["question"],
-            options=question['options'],
-            type="quiz",
-            correct_option_id=question["correct_option_id"],
-        )
-
-        # Javobni kutish va natijalarni saqlash
-        @dp.poll_answer(lambda poll_answer: poll_answer.poll_id == question_message.poll.id)
-        async def process_answer(poll_answer: types.PollAnswer):
-            user_results[user_id]["correct"] += (poll_answer.option_id == question["correct_option_id"])
-
-        # Savolni yuborganidan keyin javobni kuting
-        await asyncio.sleep(2)  # Bu vaqt ichida foydalanuvchidan javob kutish
-
-    await message.answer("Test tugadi! Natijalarni hisoblayapman...")
-    result = user_results[user_id]["correct"]
-    total = user_results[user_id]["total"]
-    await message.answer(f"Sizning natijangiz: {result}/{total}")
-
-async def start_test_2(message: types.Message):
-    user_id = message.from_user.id
-    user_results[user_id] = {"correct": 0, "total": len(test_2_questions)}
-
-    for question in test_2_questions:
-        # Har bir savolni yuborish
-        question_message = await bot.send_poll(
-            chat_id=message.chat.id,
-            question=question["question"],
-            options=question['options'],
-            type="quiz",
-            correct_option_id=question["correct_option_id"],
-        )
-
-        # Javobni kutish va natijalarni saqlash
-        @dp.poll_answer(lambda poll_answer: poll_answer.poll_id == question_message.poll.id)
-        async def process_answer(poll_answer: types.PollAnswer):
-            user_results[user_id]["correct"] += (poll_answer.option_id == question["correct_option_id"])
-
-        # Savolni yuborganidan keyin javobni kuting
-        await asyncio.sleep(2)  # Bu vaqt ichida foydalanuvchidan javob kutish
-
-    await message.answer("Test tugadi! Natijalarni hisoblayapman...")
-    result = user_results[user_id]["correct"]
-    total = user_results[user_id]["total"]
-    await message.answer(f"Sizning natijangiz: {result}/{total}")
-
-# Test 1 tugmasi bosilganda
 @dp.message(F.text == "Test 1 📝")
 async def handle_test_1(message: types.Message):
-    await start_test_1(message)
+    user_id = message.from_user.id
+    user_results[user_id] = {"correct": 0, "total": len(test_1_questions), 'poll_index':0, 'sended_poll_id':-1}
+    poll = await bot.send_poll(
+            chat_id=message.chat.id,
+            question=test_1_questions[user_results[user_id]['poll_index']]["question"],
+            options=test_1_questions[user_results[user_id]['poll_index']]['options'],
+            type="quiz",
+            correct_option_id=test_1_questions[user_results[user_id]['poll_index']]["correct_option_id"],
+            is_anonymous=False,
+        )
+    user_results[user_id]['sended_poll_id']=poll.poll.id
 
-# Test 2 tugmasi bosilganda
-@dp.message(F.text == "Test 2 📝")
-async def handle_test_2(message: types.Message):
-    await start_test_2(message)
+@dp.poll_answer()
+async def process_answer(poll_answer: types.PollAnswer):
+    user_id = poll_answer.user.id
+    if (user_results[user_id]['sended_poll_id']==poll_answer.poll_id):
+        user_results[user_id]["correct"] += (poll_answer.option_ids[0] == test_1_questions[user_results[user_id]['poll_index']]["correct_option_id"])
+        user_results[user_id]['poll_index']+=1
+        print(user_results[user_id]['poll_index'])
+        if len(test_1_questions) >= user_results[user_id]['poll_index']:
+            user_results[user_id] = {"correct": 0, "total": len(test_1_questions), 'poll_index':0, 'sended_poll_id':-1}
+            poll = await bot.send_poll(
+                    chat_id=user_id,
+                    question=test_1_questions[user_results[user_id]['poll_index']]["question"],
+                    options=test_1_questions[user_results[user_id]['poll_index']]['options'],
+                    type="quiz",
+                    correct_option_id=test_1_questions[user_results[user_id]['poll_index']]["correct_option_id"],
+                    is_anonymous=False,
+                )
+            user_results[user_id]['sended_poll_id']=poll.poll.id

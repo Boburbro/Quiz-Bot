@@ -1,23 +1,20 @@
-import handlers
-import middlewares
 from loader import dp, bot
-from aiogram.types.bot_command_scope_all_private_chats import BotCommandScopeAllPrivateChats
 import asyncio
-from utils.notify_admins import start, shutdown
-from utils.set_botcommands import commands
 import logging
-import sys
+import middlewares
+import handlers
+import utils
+
+logging.basicConfig(level=logging.INFO)
 
 async def main():
     try:
-        await bot.delete_webhook(drop_pending_updates=True)
-        await bot.set_my_commands(commands=commands, scope=BotCommandScopeAllPrivateChats(type='all_private_chats'))
-        dp.startup.register(start)
-        dp.shutdown.register(shutdown)
+        await utils.notify_admins.notify_admins()
+        await utils.set_botcommands.set_my_commands()
+        dp.message.middleware(middleware=middlewares.subscription.SubscriptionMiddleware())
         await dp.start_polling(bot)
-    finally:
-        await bot.session.close()
+    except Exception as e:
+        logging.error(f"Polling error: {e}")
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+if __name__ == "__main__":    
     asyncio.run(main())

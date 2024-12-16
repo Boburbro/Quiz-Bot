@@ -1,8 +1,15 @@
+from loader import bot
+
 from aiogram.exceptions import TelegramBadRequest
 
-async def check_subcription(bot,channel_id,user_id):
+from data.models.channel_model import Channel
+
+from data.consts import startus
+
+
+async def check_subcription(channel:Channel, user_id:int)->bool:
     try:
-        member = await bot.get_chat_member(chat_id=channel_id,user_id=user_id)
-        return member.status in ["member", 'administrator', 'creator']
+        member = await bot.get_chat_member(chat_id=channel.id,user_id=user_id)
+        return member.status in startus
     except TelegramBadRequest:
-        return False
+        return True

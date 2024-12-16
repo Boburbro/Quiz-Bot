@@ -1,21 +1,20 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
-from data.config import CHANNEL_ID
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+# from data.config import CHANNEL_ID
+from data.models.channel_model import Channel
 
-subscription_button = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="Kanalga a'zo bo'lish", url=f"https://t.me/{CHANNEL_ID.lstrip('@')}")
-        ],
+# _subscription_button = InlineKeyboardMarkup(
+#     inline_keyboard=[
+#         [
+#             InlineKeyboardButton(text="Kanalga a'zo bo'lish", url=f"https://t.me/{CHANNEL_ID.lstrip('@')}")
+#         ],
+#     ]
+# )
+
+def subscription_button(channels: list[Channel]):
+    buttons = [
+        InlineKeyboardButton(text=f"{channel.title}", url=channel.link)
+        for channel in channels
     ]
-)
+    return InlineKeyboardMarkup(inline_keyboard=[buttons])
 
-test_buttons = ReplyKeyboardMarkup(
-    keyboard=[
-        [
-            KeyboardButton(text="Test 1 📝"),
-            KeyboardButton(text="Test 2 📝")
-        ]
-    ],
-    resize_keyboard=True,
-    one_time_keyboard=True
-)
+
